@@ -67,6 +67,9 @@ public class ConsoleDebugLink extends DebugLink
 
 	/** True, if we're suspending breakpoints in an evaluation */
 	private boolean suspendBreaks = false;
+
+	/** Object to synchronize resumeThreads and threads actually resuming! */
+	private Object resumeLock = new Object();
 	
 	/**
 	 * Get the singleton. 
@@ -202,7 +205,7 @@ public class ConsoleDebugLink extends DebugLink
 	/**
 	 * Resume all threads.
 	 */
-	public synchronized void resumeThreads()
+	public void resumeThreads()
 	{
 		for (SchedulableThread thread: stopped)
 		{
@@ -220,6 +223,11 @@ public class ConsoleDebugLink extends DebugLink
 		breakpoints.clear();
 		locations.clear();
 		guardops.clear();
+		
+		synchronized (resumeLock)
+		{
+			resumeLock.notifyAll();
+		}
 	}
 
 	/**
@@ -324,8 +332,9 @@ public class ConsoleDebugLink extends DebugLink
 				switch (request.getType())
 				{
 					case RESUME:
-						synchronized (this) // So everyone resumes when "resumeThreads" method ends
+						synchronized (resumeLock)
 						{
+							resumeLock.wait(); // So everyone resumes when "resumeThreads" method ends
 							stopped = false;
 							break;
 						}

@@ -28,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.Exchanger;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.fujitsu.vdmj.Settings;
 import com.fujitsu.vdmj.config.Properties;
@@ -67,6 +68,8 @@ public abstract class SchedulableThread extends Thread implements Serializable, 
 	protected boolean stopCalled;
 	
 	public Exchanger<DebugCommand> debugExch = new Exchanger<DebugCommand>();
+	public DebugCommand exchangeCmd = null;
+	public AtomicInteger exchangeCount = new AtomicInteger(0);
 
 	public SchedulableThread(
 		Resource resource, ObjectValue object, long priority,
@@ -315,9 +318,16 @@ public abstract class SchedulableThread extends Thread implements Serializable, 
     		}
     		catch (InterruptedException e)
     		{
+    			RunState oldstate = state;
+    			
    				while (signal != null)		// Can be set by handler
    				{
    					handleSignal(signal, ctxt, location);
+   				}
+   				
+   				if (state != oldstate)		// eg. resume from debugger
+   				{
+   					return;
    				}
     		}
 		}

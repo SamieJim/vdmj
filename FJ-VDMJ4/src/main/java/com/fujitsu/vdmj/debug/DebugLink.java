@@ -108,17 +108,49 @@ abstract public class DebugLink
 	 */
 	protected DebugCommand readCommand(SchedulableThread thread) throws InterruptedException
 	{
-		return thread.debugExch.exchange(DebugCommand.ACK);		
+		// return thread.debugExch.exchange(DebugCommand.ACK);
+		
+		synchronized (thread)
+		{
+			while (thread.exchangeCmd == null)
+			{
+				thread.wait();
+			}
+			
+			DebugCommand result = thread.exchangeCmd;
+			thread.exchangeCmd = null;
+			thread.exchangeCount.getAndIncrement();
+			thread.notifyAll();
+			return result;
+		}
 	}
 	
 	/**
-	 * Write a value to the thread's Exchange, and check for an ACK.
+	 * Write a value to the thread's Exchange and check for an ACK.
 	 */
 	protected void writeCommand(SchedulableThread thread, DebugCommand response) throws InterruptedException
 	{
-		if (!thread.debugExch.exchange(response).equals(DebugCommand.ACK))
+		// if (!thread.debugExch.exchange(response).equals(DebugCommand.ACK))
+		// {
+		// 	throw new RuntimeException("Unexpected ACK from debugger");
+		// }
+		
+		synchronized (thread)
 		{
-			throw new RuntimeException("Unexpected ACK from debugger");
+			if (thread.exchangeCmd != null)
+			{
+				System.err.println("Thread exchange not clear - " + thread.getName());
+				System.err.println("Ignoring " + thread.exchangeCmd);
+			}
+			
+			thread.exchangeCmd = response;
+			int count = thread.exchangeCount.get();
+			thread.notifyAll();
+
+			while (thread.exchangeCount.get() == count)
+			{
+				thread.wait();
+			}
 		}
 	}
 }
