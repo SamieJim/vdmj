@@ -31,6 +31,7 @@ import java.util.Vector;
 
 import com.fujitsu.vdmj.in.expressions.INExpression;
 import com.fujitsu.vdmj.in.expressions.INExpressionList;
+import com.fujitsu.vdmj.in.modules.INModule;
 import com.fujitsu.vdmj.in.statements.INStatement;
 import com.fujitsu.vdmj.runtime.Context;
 import com.fujitsu.vdmj.tc.lex.TCIdentifierToken;
@@ -98,6 +99,11 @@ public abstract class INAnnotation
 	}
 
 	public void inBefore(INStatement stmt, Context ctxt)
+	{
+		// Do nothing
+	}
+
+	public void inBefore(INModule stmt, Context ctxt)
 	{
 		// Do nothing
 	}
